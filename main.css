@@ -1,0 +1,25 @@
+:root {
+  --background-color: #cdcdde;
+  --div-background-color: #f0f0f0;
+  --td-background-color: #f8f8ff;
+  --th-background-color: #c0cfe4;
+  --highlight-background-color: #d0d0d0;
+  --link-color: #486ea2;
+  --new-entry-font-color: #aa3030;
+  --small-table-spacing: 1px;
+  --small-spacing: 2px;
+  --small-padding: 2px;
+  --large-padding: 4px;
+}
+
+
+body {
+  background-color: var(--background-color);
+  font-family: 'Helvetica Neue', 'Helvetica', 'Arimo', 'Liberation Sans', 'Lucida Grande', 'sans-serif';
+}
+
+a {
+  color: var(--link-color);
+}
+
+
