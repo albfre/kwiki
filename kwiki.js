@@ -62,6 +62,10 @@ async function getLanguageSubsection(word, language = targetLanguage) {
   return fragment
 }
 
+function selectWordForms(soup) {
+  return soup.querySelectorAll(wordForms.map((a) => `span[id^="${a}"]`).join(','));
+}
+
 function selectFirstWordForm(soup) {
   return soup.querySelector(wordForms.map((a) => `span[id^="${a}"]`).join(','));
 }
@@ -73,12 +77,13 @@ function getWordForm(soup) {
 
 function fixHeaders(soup) {
   for (const tag of selectWordForms(soup)) {
-    if (tag.parentNode.tagName === 'h4') {
-      tag.parentNode.tagName = 'h3';
+    parentNode = tag.parentNode;
+    if (parentNode.tagName === 'H4') {
+      parentNode.outerHTML = `<h3>${parentNode.innerHTML}</h3>`;
     }
   }
   for (const tag of soup.querySelectorAll('h5')) {
-    tag.tagName = 'h4';
+    tag.outerHTML = `<h4>${tag.innerHTML}</h4>`;
   }
 }
 
@@ -129,8 +134,7 @@ function removeWikiEdits(soup) {
 
 function fixSelfLinks(word, soup) {
   soup.querySelectorAll('strong.selflink').forEach((tag) => {
-    tag.tagName = 'a';
-    tag.setAttribute('href', word);
+    tag.outerHTML = `<a href=${word}>${tag.innerHTML}</a>`;
   });
 }
 
@@ -139,8 +143,8 @@ async function getLanguagePart(word) {
   //abbreviateGrammar(soup);
   fixInternalLinks(soup);
   removeWikiEdits(soup);
-  //fixHeaders(soup);
-  //fixSelfLinks(word, soup);
+  fixHeaders(soup);
+  fixSelfLinks(word, soup);
   return soup;
 }
 
@@ -152,7 +156,6 @@ function hasIdStartingWithWordFormOrLabel(cur) {
 async function getWordSoups(word) {
   console.log('ap1 ' + word);
   const soup = await getLanguagePart(word);
-  console.log('ap2');
   let cur = selectFirstWordForm(soup).parentNode;
   console.log('ap3');
   console.log(soup);
