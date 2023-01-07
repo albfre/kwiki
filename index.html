@@ -3,15 +3,38 @@
   <head>
     <title>Kwiktionary</title>
     <link rel="stylesheet" href="main.css">
+    <meta charset="UTF-8">
+    <meta name="description" content="kwiktionary">
+    <meta name="author" content="albin fredriksson">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
   </head>
   <body>
-    <h1>Kwiktionary</h1>
-    <form id="word-form">
-      <label for="word-input">Enter a word:</label><br>
-      <input type="text" id="word-input" name="word" value="invenit"><br>
-      <button type="submit">Submit</button>
-    </form>
-    <div id="result"></div>
+    <div class="container">
+      <header>
+        <div class="light small-margin large-padding"> <form method="post" id="word-form">
+    <!--        <label for="word-input">Enter a word:</label><br> -->
+            <input type="text" id="word-input" name="word" value="invenit"><br>
+            <button type="submit" class="hidden">Submit</button>
+          </form>
+        </div>
+        <div class="dark">
+          <table class="word-form-table">
+            <tr id="resultTr">
+            </tr>
+          </table>
+        </div>
+      </header>
+
+      <footer align="bottom">
+        <div class="light small-margin large-padding" align="right">
+          <font size=1>
+            <a href="/about/">About</a>
+            &nbsp;
+            <a href="/contact/">Contact</a>
+          </font>
+        </div>
+      </footer>
+    </div>
   </body>
   <script src="kwiki.js"></script>
 </html>

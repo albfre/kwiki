@@ -96,7 +96,7 @@ function abbreviateGrammar(soup) {
     }
   }
 
-  for (const t of soup.querySelectorAll('table td')) {
+  for (const t of soup.querySelectorAll('table th')) {
     replaceString(t);
   }
   for (const t of soup.querySelectorAll('h3, h4, h5, h6')) {
@@ -121,8 +121,9 @@ function* extractBaseWordForms(soup) {
     const cl = x.getAttribute('class')
     if (cl && baseFormClasses.some((b) => cl.includes(b))) {
       const a = x.querySelector('a');
-      if (a && a.getAttribute('href')) {
-        yield a.getAttribute('href');
+      const href = a?.getAttribute('href');
+      if (href) {
+        yield href;
       }
     }
   }
@@ -140,7 +141,7 @@ function fixSelfLinks(word, soup) {
 
 async function getLanguagePart(word) {
   const soup = await getLanguageSubsection(word);
-  //abbreviateGrammar(soup);
+  abbreviateGrammar(soup);
   fixInternalLinks(soup);
   removeWikiEdits(soup);
   fixHeaders(soup);
@@ -148,27 +149,35 @@ async function getLanguagePart(word) {
   return soup;
 }
 
-function hasIdStartingWithWordFormOrLabel(cur) {
-  return cur.id && wordFormsAndLabels.some((prefix) => cur.id.startsWith(prefix));
+function hasIdStartingWithWordForm(cur) {
+  return cur.id && wordForms.some((prefix) => cur.id.startsWith(prefix));
+}
 
+function hasChildStartingWithWordForm(cur) {
+  if (hasIdStartingWithWordForm(cur)) {
+    return true;
+  }
+  let child = cur.firstElementChild;
+  while (child) {
+    if (hasIdStartingWithWordForm(child)) {
+      return true;
+    }
+    child = child.nextElementSibling;
+  }
+  return false;
 }
 
 async function getWordSoups(word) {
-  console.log('ap1 ' + word);
   const soup = await getLanguagePart(word);
   let cur = selectFirstWordForm(soup).parentNode;
-  console.log('ap3');
-  console.log(soup);
-  console.log('ap4');
-  console.log(cur);
   const fragments = [];
   while (cur) {
     const fragment = new DocumentFragment()
     do {
-      next = cur.nextSibling;
+      next = cur.nextElementSibling;
       fragment.appendChild(cur);
       cur = next;
-    } while (cur && !hasIdStartingWithWordFormOrLabel(cur));
+    } while (cur && !hasChildStartingWithWordForm(cur));
     fragments.push(fragment);
   }
   console.log("fragment length: " + fragments.length);
@@ -180,30 +189,26 @@ async function getWordSoupGroups(word) {
   const wordSoups = await getWordSoups(word);
   const soupGroups = [];
   for (const wordSoup of wordSoups) {
-    soupGroups.push([wordSoup]);
+    const group = [wordSoup];
     const wordForm = getWordForm(wordSoup);
     const baseWordForms = Array.from(new Set(extractBaseWordForms(wordSoup)));
     for (const baseWordForm of baseWordForms) {
-  console.log('bep2-4')
-  console.log(baseWordForm)
       const baseWordSoups = await getWordSoups(baseWordForm);
-  console.log(baseWordSoups.length)
       for (const baseWordSoup of baseWordSoups) {
         if (getWordForm(baseWordSoup) === wordForm) {
-          soupGroups[soupGroups.length - 1].push(baseWordSoup);
+          let w = selectFirstWordForm(baseWordSoup);
+          w.innerHTML += ' [Base form]';
+          group.push(baseWordSoup);
         }
       }
-  console.log('bep2-6')
     }
+    soupGroups.push(group)
   }
-  console.log('bep3')
-  console.log(soupGroups.length)
   return soupGroups;
 }
 
 async function renderTags(word) {
   const fragmentGroups = await getWordSoupGroups(word);
-  console.log('groups')
   console.log(fragmentGroups)
   const fragments = []
   for (const fragmentGroup of fragmentGroups) {
@@ -215,7 +220,7 @@ async function renderTags(word) {
     fragments.push(resultFragment);
   }
 
-  return fragments[0];
+  return fragments;
 
 /*
   return soupGroups
@@ -227,17 +232,22 @@ async function renderTags(word) {
 async function handleWordFormSubmit(event) {
   event.preventDefault();
   const wordInput = document.getElementById('word-input');
-  const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = '';
+  const resultTr = document.getElementById('resultTr');
+  resultTr.innerHTML = '';
   const word = wordInput.value.trim().toLowerCase();
   if (!word) {
     return;
   }
   try {
-    const result = await renderTags(word);
-    resultDiv.appendChild(result)
-    //resultDiv.innerHTML = JSON.stringify(result, null, 2);
-    //console.log('inner: ' + resultDiv.innerHTML)
+    const results = await renderTags(word);
+    console.log('results.length')
+    console.log(results.length)
+    for (const result of results) {
+      const td = document.createElement('td');
+      td.className = 'light word-form-table';
+      td.appendChild(result);
+      resultTr.appendChild(td);
+    }
   } catch (error) {
     resultDiv.innerHTML = `Error: ${error.message}`;
   }

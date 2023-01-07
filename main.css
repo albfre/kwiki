@@ -22,4 +22,89 @@ a {
   color: var(--link-color);
 }
 
+input {
+  background-color: var(--background-color);
+  font-family: 'Helvetica Neue', 'Helvetica', 'Arimo', 'Liberation Sans', 'Lucida Grande', 'sans-serif';
+  font-size: 24px;
+  border: 0px;
+  padding: var(--small-padding);
+  width: 100%;
+}
 
+table, th, td {
+  border-spacing: var(--small-table-spacing);
+  border-collapse: separate;
+  border: 0px;
+}
+
+th {
+  background-color: var(--th-background-color);
+}
+
+td {
+  background-color: var(--td-background-color);
+}
+
+table.word-form-table {
+  background-color: var(--background-color);
+  border-spacing: var(--small-spacing) 0;
+  border-collapse: separate;
+  width: 100%;
+}
+
+td.word-form-table {
+  padding: var(--large-padding);
+  vertical-align: top;
+}
+
+.new {
+  color: var(--new-entry-font-color);
+}
+
+.content {
+  margin: auto;
+}
+
+.light {
+  background-color: var(--div-background-color);
+}
+
+.dark {
+  background-color: var(--background-color);
+}
+
+.large-padding {
+  padding: var(--large-padding);
+}
+
+.small-margin {
+  margin: var(--small-spacing);
+}
+
+.highlighted {
+  background-color: var(--highlighted-background-color);
+}
+
+.rounded {
+  border-radius: 1px;
+  padding:17px 17px;
+  margin:10px 0px;
+  overflow: hidden;
+}
+
+.hidden {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+}
+
+.rotate90 {
+  filter:  progid:DXImageTransform.Microsoft.BasicImage(rotation=0.083);  /* IE6,IE7 */
+  -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=0.083)"; /* IE8 */
+  -moz-transform: rotate(-90.0deg);  /* FF3.5+ */
+  -ms-transform: rotate(-90.0deg);  /* IE9+ */
+  -o-transform: rotate(-90.0deg);  /* Opera 10.5 */
+  -webkit-transform: rotate(-90.0deg);  /* Safari 3.1+, Chrome */
+  transform: rotate(-90.0deg);  /* Standard */
+}
