@@ -75,15 +75,23 @@ function getWordForm(soup) {
   return wordForms.find((wf) => w.startsWith(wf));
 }
 
+function replaceNode(tag, newTagStr) {
+  newNode = document.createElement(newTagStr);
+  newNode.innerHTML = tag.innerHTML;
+  newNode.id = tag.id;
+  tag.replaceWith(newNode);
+  return newNode;
+}
+
 function fixHeaders(soup) {
   for (const tag of selectWordForms(soup)) {
     parentNode = tag.parentNode;
     if (parentNode.tagName === 'H4') {
-      parentNode.outerHTML = `<h3>${parentNode.innerHTML}</h3>`;
+      replaceNode(parentNode, 'h3');
     }
   }
   for (const tag of soup.querySelectorAll('h5')) {
-    tag.outerHTML = `<h4>${tag.innerHTML}</h4>`;
+    replaceNode(tag, 'h4');
   }
 }
 
@@ -135,7 +143,8 @@ function removeWikiEdits(soup) {
 
 function fixSelfLinks(word, soup) {
   soup.querySelectorAll('strong.selflink').forEach((tag) => {
-    tag.outerHTML = `<a href=${word}>${tag.innerHTML}</a>`;
+    newNode = replaceNode(tag, 'a');
+    newNode.setAttribute('href', word);
   });
 }
 
@@ -233,6 +242,7 @@ async function handleWordFormSubmit(event) {
   event.preventDefault();
   const wordInput = document.getElementById('word-input');
   const resultTr = document.getElementById('resultTr');
+  const resultDiv = document.getElementById('resultDiv');
   resultTr.innerHTML = '';
   const word = wordInput.value.trim().toLowerCase();
   if (!word) {
