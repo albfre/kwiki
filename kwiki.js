@@ -224,7 +224,8 @@ async function renderTags(word) {
     const resultFragment = new DocumentFragment();
     for (const fragment of fragmentGroup) {
       resultFragment.appendChild(fragment);
-      resultFragment.appendChild(document.createElement('p'));
+      resultFragment.appendChild(document.createElement('br'));
+      resultFragment.appendChild(document.createElement('br'));
     }
     fragments.push(resultFragment);
   }

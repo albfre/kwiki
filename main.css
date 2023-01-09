@@ -29,6 +29,7 @@ input {
   border: 0px;
   padding: var(--small-padding);
   width: 100%;
+  box-sizing: border-box;
 }
 
 table, th, td {
