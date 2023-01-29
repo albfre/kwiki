@@ -34,6 +34,8 @@ const abbreviations = {
     'feminine': 'fem.',
     'masculine': 'masc.',
     'reflexive': 'reflex.',
+    'interrogative': 'interrog.',
+    'indefinite': 'indef.',
 };
 
 async function getDOM(word) {
@@ -44,6 +46,7 @@ async function getDOM(word) {
     body: 'action=parse&origin=*&page=' + word + '&format=json'
   });
   const data = await response.json();
+
   const htmlText = data.parse.text['*'];
   return new DOMParser().parseFromString(htmlText, 'text/html');
 }
@@ -70,6 +73,10 @@ function selectFirstWordForm(soup) {
   return soup.querySelector(wordForms.map((a) => `span[id^="${a}"]`).join(','));
 }
 
+function selectEtymology(soup) {
+  return soup.querySelectorAll('span[id^="Etymology"]');
+}
+
 function getWordForm(soup) {
   const w = selectFirstWordForm(soup).id;
   return wordForms.find((wf) => w.startsWith(wf));
@@ -86,8 +93,14 @@ function replaceNode(tag, newTagStr) {
 function fixHeaders(soup) {
   for (const tag of selectWordForms(soup)) {
     parentNode = tag.parentNode;
-    if (parentNode.tagName === 'H4') {
+    if (parentNode.tagName !== 'H3') {
       replaceNode(parentNode, 'h3');
+    }
+  }
+  for (const tag of selectEtymology(soup)) {
+    parentNode = tag.parentNode;
+    if (parentNode.tagName !== 'H4') {
+      replaceNode(parentNode, 'h4');
     }
   }
   for (const tag of soup.querySelectorAll('h5')) {
@@ -141,6 +154,10 @@ function removeWikiEdits(soup) {
   soup.querySelectorAll('span.mw-editsection').forEach((tag) => tag.remove());
 }
 
+function removeEmptyListElements(soup) {
+  soup.querySelectorAll('li.mw-empty-elt').forEach((tag) => tag.remove());
+}
+
 function fixSelfLinks(word, soup) {
   soup.querySelectorAll('strong.selflink').forEach((tag) => {
     newNode = replaceNode(tag, 'a');
@@ -153,22 +170,23 @@ async function getLanguagePart(word) {
   abbreviateGrammar(soup);
   fixInternalLinks(soup);
   removeWikiEdits(soup);
+  removeEmptyListElements(soup)
   fixHeaders(soup);
   fixSelfLinks(word, soup);
   return soup;
 }
 
-function hasIdStartingWithWordForm(cur) {
-  return cur.id && wordForms.some((prefix) => cur.id.startsWith(prefix));
+function hasIdStartingWithWordFormOrLabel(cur) {
+  return cur.id && wordFormsAndLabels.some((prefix) => cur.id.startsWith(prefix));
 }
 
-function hasChildStartingWithWordForm(cur) {
-  if (hasIdStartingWithWordForm(cur)) {
+function hasChildStartingWithWordFormOrLabel(cur) {
+  if (hasIdStartingWithWordFormOrLabel(cur)) {
     return true;
   }
   let child = cur.firstElementChild;
   while (child) {
-    if (hasIdStartingWithWordForm(child)) {
+    if (hasIdStartingWithWordFormOrLabel(child)) {
       return true;
     }
     child = child.nextElementSibling;
@@ -176,23 +194,46 @@ function hasChildStartingWithWordForm(cur) {
   return false;
 }
 
-async function getWordSoups(word) {
-  const soup = await getLanguagePart(word);
-  let cur = selectFirstWordForm(soup).parentNode;
+function getWordFormFragment(soup) {
+  const fragment = new DocumentFragment()
+  let cur = soup.parentNode;
+  do {
+    next = cur.nextElementSibling;
+    fragment.appendChild(cur);
+    cur = next;
+  } while (cur && !hasChildStartingWithWordFormOrLabel(cur));
+  return fragment;
+}
+
+function getWordFormFragments(soups) {
   const fragments = [];
-  while (cur) {
-    const fragment = new DocumentFragment()
-    do {
-      next = cur.nextElementSibling;
-      fragment.appendChild(cur);
-      cur = next;
-    } while (cur && !hasChildStartingWithWordForm(cur));
+  for (const soup of soups) {
+    const fragment = getWordFormFragment(soup);
     fragments.push(fragment);
   }
-  console.log("fragment length: " + fragments.length);
-  console.log(fragments[0]);
   return fragments;
 }
+
+async function getWordSoups(word) {
+  const soup = await getLanguagePart(word);
+  const wordForms = selectWordForms(soup);
+  const wordFormFragments = getWordFormFragments(wordForms);
+
+  const etymologys = selectEtymology(soup);
+  console.log('etymology length: ' + etymologys.length)
+  if (wordFormFragments.length === etymologys.length) {
+    const etymologyFragments = getWordFormFragments(etymologys);
+    console.log(etymologyFragments[0]);
+    for (let i = 0; i < wordFormFragments.length; i++) {
+      wordFormFragments[i].appendChild(etymologyFragments[i]);
+    }
+  }
+
+  console.log("fragment length: " + wordFormFragments.length);
+  console.log(wordFormFragments);
+  return wordFormFragments;
+}
+
 
 async function getWordSoupGroups(word) {
   const wordSoups = await getWordSoups(word);
