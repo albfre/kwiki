@@ -305,6 +305,7 @@ async function handleWordFormSubmit(event) {
   const wordInput = document.getElementById('word-input');
   const resultTr = document.getElementById('resultTr');
   const resultDiv = document.getElementById('resultDiv');
+  resultDiv.innerHTML = '';
   resultTr.innerHTML = '';
   const word = wordInput.value.trim().toLowerCase();
   if (!word) {
