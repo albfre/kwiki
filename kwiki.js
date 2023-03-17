@@ -38,6 +38,15 @@ const abbreviations = {
     'indefinite': 'indef.',
 };
 
+class WordNotFoundError extends Error {}
+
+function log(s) {
+  if (true) {
+    console.log(s);
+  }
+}
+
+
 async function getDOM(word) {
   const path = wikiUrl + wikiApiDirectory + apiFile;
   const response = await fetch(path, {
@@ -47,6 +56,9 @@ async function getDOM(word) {
   });
   const data = await response.json();
 
+  if (data.error !== undefined) {
+    throw new WordNotFoundError(word);
+  }
   const htmlText = data.parse.text['*'];
   return new DOMParser().parseFromString(htmlText, 'text/html');
 }
@@ -54,10 +66,14 @@ async function getDOM(word) {
 async function getLanguageSubsection(word, language = targetLanguage) {
   const soup = await getDOM(word);
 
-  // Take tags from <span id="Language"> until <hr>
-  let cur = soup.querySelector(`span[id='${language}']`).parentNode.nextElementSibling;
+  // Take tags from <span id="Language"> until <h2>
+  const selection = soup.querySelector(`span[id='${language}']`)
+  if (!selection) {
+    throw new WordNotFoundError(word)
+  }
+  let cur = selection.parentNode.nextElementSibling;
   const fragment = new DocumentFragment();
-  while (cur && cur.tagName !== 'HR') {
+  while (cur && cur.tagName !== 'H2') {
     next = cur.nextSibling;
     fragment.appendChild(cur);
     cur = next;
@@ -127,12 +143,14 @@ function abbreviateGrammar(soup) {
 
 function fixInternalLinks(soup) {
   soup.querySelectorAll('a').forEach((a) => {
-    const href = a.getAttribute('href').toLowerCase();
-    if (href.startsWith(wikiDirectory) &&
-        (href.includes(`#${targetLanguage.toLowerCase()}`) || !href.includes('#'))) {
-      a.setAttribute('href', href.slice(wikiDirectory.length).split('#')[0]);
-    } else if (!(href.startsWith('http') || href.startsWith('//'))) {
-      a.setAttribute('href', `${wikiUrl}${href}`);
+    const href = a.getAttribute('href')?.toLowerCase();
+    if (href) {
+      if (href.startsWith(wikiDirectory) &&
+          (href.includes(`#${targetLanguage.toLowerCase()}`) || !href.includes('#'))) {
+        a.setAttribute('href', href.slice(wikiDirectory.length).split('#')[0]);
+      } else if (!(href.startsWith('http') || href.startsWith('//'))) {
+        a.setAttribute('href', `${wikiUrl}${href}`);
+      }
     }
   });
 }
@@ -220,20 +238,19 @@ async function getWordSoups(word) {
   const wordFormFragments = getWordFormFragments(wordForms);
 
   const etymologys = selectEtymology(soup);
-  console.log('etymology length: ' + etymologys.length)
+  log('etymology length: ' + etymologys.length)
   if (wordFormFragments.length === etymologys.length) {
     const etymologyFragments = getWordFormFragments(etymologys);
-    console.log(etymologyFragments[0]);
+    log(etymologyFragments[0]);
     for (let i = 0; i < wordFormFragments.length; i++) {
       wordFormFragments[i].appendChild(etymologyFragments[i]);
     }
   }
 
-  console.log("fragment length: " + wordFormFragments.length);
-  console.log(wordFormFragments);
+  log("fragment length: " + wordFormFragments.length);
+  log(wordFormFragments);
   return wordFormFragments;
 }
-
 
 async function getWordSoupGroups(word) {
   const wordSoups = await getWordSoups(word);
@@ -242,7 +259,9 @@ async function getWordSoupGroups(word) {
     const group = [wordSoup];
     const wordForm = getWordForm(wordSoup);
     const baseWordForms = Array.from(new Set(extractBaseWordForms(wordSoup)));
+
     for (const baseWordForm of baseWordForms) {
+      log('base form: ' + baseWordForm)
       const baseWordSoups = await getWordSoups(baseWordForm);
       for (const baseWordSoup of baseWordSoups) {
         if (getWordForm(baseWordSoup) === wordForm) {
@@ -259,7 +278,8 @@ async function getWordSoupGroups(word) {
 
 async function renderTags(word) {
   const fragmentGroups = await getWordSoupGroups(word);
-  console.log(fragmentGroups)
+  log('fragment groups:')
+  log(fragmentGroups)
   const fragments = []
   for (const fragmentGroup of fragmentGroups) {
     const resultFragment = new DocumentFragment();
@@ -292,8 +312,7 @@ async function handleWordFormSubmit(event) {
   }
   try {
     const results = await renderTags(word);
-    console.log('results.length')
-    console.log(results.length)
+    log('results.length: ' + results.length)
     for (const result of results) {
       const td = document.createElement('td');
       td.className = 'light word-form-table';
@@ -301,12 +320,17 @@ async function handleWordFormSubmit(event) {
       resultTr.appendChild(td);
     }
   } catch (error) {
-    resultDiv.innerHTML = `Error: ${error.message}`;
+    if (error instanceof WordNotFoundError) {
+      resultDiv.innerHTML = `Word not found: ${error.message}`;
+    }
+    else {
+      resultDiv.innerHTML = `Error: ${error.message}`;
+    }
   }
 }
 
 const wordForm = document.getElementById('word-form');
 if (!wordForm) {
-  console.log('word form null')
+  log('word form null')
 }
 wordForm.addEventListener('submit', handleWordFormSubmit);
