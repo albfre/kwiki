@@ -66,14 +66,14 @@ async function getDOM(word) {
 async function getLanguageSubsection(word, language = targetLanguage) {
   const soup = await getDOM(word);
 
-  // Take tags from <span id="Language"> until <h2>
+  // Take tags from <span id="Language"> until <h2> or <hr>
   const selection = soup.querySelector(`span[id='${language}']`)
   if (!selection) {
     throw new WordNotFoundError(word)
   }
   let cur = selection.parentNode.nextElementSibling;
   const fragment = new DocumentFragment();
-  while (cur && cur.tagName !== 'H2') {
+  while (cur && cur.tagName !== 'H2' && cur.tagName !== 'HR') {
     next = cur.nextSibling;
     fragment.appendChild(cur);
     cur = next;
