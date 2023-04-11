@@ -1,6 +1,7 @@
 const wikiUrl = 'https://en.wiktionary.org';
 const wikiApiDirectory = '/w/';
 const wikiDirectory = '/wiki/';
+const postPrefix = 'index.html?word=';
 const apiFile = 'api.php'
 const targetLanguage = 'Latin';
 const parser = 'html.parser';
@@ -147,9 +148,9 @@ function fixInternalLinks(soup) {
     if (href) {
       if (href.startsWith(wikiDirectory) &&
           (href.includes(`#${targetLanguage.toLowerCase()}`) || !href.includes('#'))) {
-        a.setAttribute('href', href.slice(wikiDirectory.length).split('#')[0]);
+        a.setAttribute('href', postPrefix + href.slice(wikiDirectory.length).split('#')[0]);
       } else if (!(href.startsWith('http') || href.startsWith('//'))) {
-        a.setAttribute('href', `${wikiUrl}${href}`);
+        a.setAttribute('href', `${postPrefix}${wikiUrl}${href}`);
       }
     }
   });
@@ -160,8 +161,11 @@ function* extractBaseWordForms(soup) {
     const cl = x.getAttribute('class')
     if (cl && baseFormClasses.some((b) => cl.includes(b))) {
       const a = x.querySelector('a');
-      const href = a?.getAttribute('href');
+      let href = a?.getAttribute('href');
       if (href) {
+        if (href.startsWith(postPrefix)) {
+          href = href.slice(postPrefix.length);
+        }
         yield href;
       }
     }
@@ -292,12 +296,6 @@ async function renderTags(word) {
   }
 
   return fragments;
-
-/*
-  return soupGroups
-    .map((group) => group.map((s) => s.innerHTML).join('<p>'))
-    .join('<br><b>-------------------</b>');
-    */
 }
 
 async function handleWordFormSubmit(event) {
@@ -330,8 +328,25 @@ async function handleWordFormSubmit(event) {
   }
 }
 
+function handleAddress() {
+  const params = new URLSearchParams(window.location.search);
+  const message = params.get('word').trim();
+  log(message);
+  if (message !== '' && message.length < 1000) {
+    const wordInput = document.getElementById('word-input');
+    wordInput.value = message;
+    const event = new Event("submit");
+    handleWordFormSubmit(event);
+    //const wordForm = document.getElementById('word-form');
+    //wordForm.submit();
+
+  }
+}
+
 const wordForm = document.getElementById('word-form');
 if (!wordForm) {
   log('word form null')
 }
+
 wordForm.addEventListener('submit', handleWordFormSubmit);
+window.onload = handleAddress;
