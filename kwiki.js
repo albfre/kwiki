@@ -58,7 +58,7 @@ async function getDOM(word) {
   const data = await response.json();
 
   if (data.error !== undefined) {
-    throw new WordNotFoundError(word);
+    throw new WordNotFoundError('undefined: ' + word);
   }
   const htmlText = data.parse.text['*'];
   return new DOMParser().parseFromString(htmlText, 'text/html');
@@ -68,9 +68,9 @@ async function getLanguageSubsection(word, language = targetLanguage) {
   const soup = await getDOM(word);
 
   // Take tags from <span id="Language"> until <h2> or <hr>
-  const selection = soup.querySelector(`span[id='${language}']`)
+  const selection = soup.querySelector(`h2[id='${language}']`)
   if (!selection) {
-    throw new WordNotFoundError(word)
+    throw new WordNotFoundError('selection: ' + word)
   }
   let cur = selection.parentNode.nextElementSibling;
   const fragment = new DocumentFragment();
@@ -83,15 +83,15 @@ async function getLanguageSubsection(word, language = targetLanguage) {
 }
 
 function selectWordForms(soup) {
-  return soup.querySelectorAll(wordForms.map((a) => `span[id^="${a}"]`).join(','));
+  return soup.querySelectorAll(wordForms.map((a) => `h3[id^="${a}"]`).join(','));
 }
 
 function selectFirstWordForm(soup) {
-  return soup.querySelector(wordForms.map((a) => `span[id^="${a}"]`).join(','));
+  return soup.querySelector(wordForms.map((a) => `h3[id^="${a}"]`).join(','));
 }
 
 function selectEtymology(soup) {
-  return soup.querySelectorAll('span[id^="Etymology"]');
+  return soup.querySelectorAll('h3[id^="Etymology"]');
 }
 
 function getWordForm(soup) {
@@ -157,7 +157,7 @@ function fixInternalLinks(soup) {
 }
 
 function* extractBaseWordForms(soup) {
-  for (const x of soup.querySelectorAll('span')) {
+  for (const x of soup.querySelectorAll('h3')) {
     const cl = x.getAttribute('class')
     if (cl && baseFormClasses.some((b) => cl.includes(b))) {
       const a = x.querySelector('a');
