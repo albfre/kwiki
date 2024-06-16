@@ -64,6 +64,14 @@ async function getDOM(word) {
   return new DOMParser().parseFromString(htmlText, 'text/html');
 }
 
+function continueExtraction(cur) {
+  if (!cur)
+    return false;
+  if (cur.tagName === 'DIV' && cur.className === 'mw-heading mw-heading2')
+    return false;
+  return true;
+}
+
 async function getLanguageSubsection(word, language = targetLanguage) {
   const soup = await getDOM(word);
 
@@ -74,7 +82,7 @@ async function getLanguageSubsection(word, language = targetLanguage) {
   }
   let cur = selection.parentNode.nextElementSibling;
   const fragment = new DocumentFragment();
-  while (cur && cur.tagName !== 'H2' && cur.tagName !== 'HR') {
+  while (continueExtraction(cur)) {
     next = cur.nextSibling;
     fragment.appendChild(cur);
     cur = next;
@@ -82,12 +90,18 @@ async function getLanguageSubsection(word, language = targetLanguage) {
   return fragment
 }
 
+function getWordFormSelector() {
+  selector = wordForms.map((a) => `h3[id^="${a}"]`).join(',');
+  selector += ',' + wordForms.map((a) => `h4[id^="${a}"]`).join(',')
+  return selector
+}
+
 function selectWordForms(soup) {
-  return soup.querySelectorAll(wordForms.map((a) => `h3[id^="${a}"]`).join(','));
+  return soup.querySelectorAll(getWordFormSelector());
 }
 
 function selectFirstWordForm(soup) {
-  return soup.querySelector(wordForms.map((a) => `h3[id^="${a}"]`).join(','));
+  return soup.querySelector(getWordFormSelector());
 }
 
 function selectEtymology(soup) {
@@ -157,7 +171,7 @@ function fixInternalLinks(soup) {
 }
 
 function* extractBaseWordForms(soup) {
-  for (const x of soup.querySelectorAll('h3')) {
+  for (const x of soup.querySelectorAll('span')) {
     const cl = x.getAttribute('class')
     if (cl && baseFormClasses.some((b) => cl.includes(b))) {
       const a = x.querySelector('a');
@@ -265,7 +279,6 @@ async function getWordSoupGroups(word) {
     const baseWordForms = Array.from(new Set(extractBaseWordForms(wordSoup)));
 
     for (const baseWordForm of baseWordForms) {
-      log('base form: ' + baseWordForm)
       const baseWordSoups = await getWordSoups(baseWordForm);
       for (const baseWordSoup of baseWordSoups) {
         if (getWordForm(baseWordSoup) === wordForm) {
